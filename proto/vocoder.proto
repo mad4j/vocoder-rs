@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package vocoder;
+
+// Main VocoderService interface based on the IDL specification
+service VocoderService {
+  // Control operations from Vocoder::Ctrl interface
+  rpc GetAlgorithmsSupported(Empty) returns (AlgorithmSequence);
+  rpc GetLoopback(Empty) returns (LoopbackResponse);
+  rpc SetLoopback(LoopbackRequest) returns (Empty);
+  rpc GetTxAlgorithm(Empty) returns (AlgorithmResponse);
+  rpc GetRxAlgorithm(Empty) returns (AlgorithmResponse);
+  rpc SetTxAlgorithm(AlgorithmRequest) returns (Empty);
+  rpc SetRxAlgorithm(AlgorithmRequest) returns (Empty);
+  rpc AbortTx(Empty) returns (Empty);
+  
+  // Packet consumer/producer operations
+  rpc ConsumeVocoderPackets(stream AudioPacket) returns (ConsumeResponse);
+  rpc ProduceVocoderPackets(ProduceRequest) returns (stream AudioPacket);
+}
+
+// Packet handling service for basic operations
+service PacketService {
+  // Stream for consuming audio packets
+  rpc ConsumePackets(stream AudioPacket) returns (ConsumeResponse);
+  
+  // Stream for producing audio packets
+  rpc ProducePackets(ProduceRequest) returns (stream AudioPacket);
+}
+
+// Algorithm enumeration based on specification
+enum Algorithm {
+  ALG_NONE = 0;      // De-selects other algorithms
+  ALG_RAW = 1;       // Raw audio samples
+  ALG_MELP = 2;      // MELP vocoder
+  ALG_LPC = 3;       // LPC vocoder
+  ALG_CVSD = 4;      // CVSD vocoder
+  ALG_SPEEX = 5;     // SPEEX vocoder
+  ALG_G729 = 6;      // G.729 vocoder
+  ALG_G711 = 7;      // G.711 vocoder
+  ALG_MELPE_DTX_VAD = 8; // MELPe with DTX and VAD
+}
+
+// Messages
+message Empty {}
+
+message AlgorithmSequence {
+  repeated Algorithm algorithms = 1;
+}
+
+message LoopbackResponse {
+  bool loopback = 1;
+}
+
+message LoopbackRequest {
+  bool loopback = 1;
+}
+
+message AlgorithmResponse {
+  Algorithm algorithm = 1;
+}
+
+message AlgorithmRequest {
+  Algorithm algorithm = 1;
+}
+
+// Audio packet for data transfer
+message AudioPacket {
+  bytes data = 1;
+  int32 sequence_number = 2;
+  int64 timestamp = 3;
+  map<string, string> metadata = 4;
+}
+
+message ConsumeResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ProduceRequest {
+  int32 max_packets = 1;
+  map<string, string> parameters = 2;
+}
+
+// Error handling
+message VocoderError {
+  string code = 1;
+  string message = 2;
+}
