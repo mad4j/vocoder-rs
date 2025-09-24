@@ -193,4 +193,59 @@ mod tests {
         let state = vocoder.get_state().await;
         assert_eq!(state.is_tx_active, false);
     }
+
+    #[tokio::test]
+    async fn test_g711_algorithm_support() {
+        let vocoder = VocoderImpl::new();
+        
+        // Test that G711 is in the supported algorithms list
+        let response = vocoder.get_algorithms_supported().await;
+        assert!(response.algorithms.contains(&(Algorithm::AlgG711 as i32)),
+            "G711 algorithm should be supported");
+        
+        // Test setting TX algorithm to G711
+        let result = vocoder.set_tx_algorithm(AlgorithmRequest { 
+            algorithm: Algorithm::AlgG711 as i32 
+        }).await;
+        assert!(result.is_ok(), "Setting TX algorithm to G711 should succeed");
+        
+        let response = vocoder.get_tx_algorithm().await;
+        assert_eq!(response.algorithm, Algorithm::AlgG711 as i32,
+            "TX algorithm should be set to G711");
+        
+        // Test setting RX algorithm to G711
+        let result = vocoder.set_rx_algorithm(AlgorithmRequest { 
+            algorithm: Algorithm::AlgG711 as i32 
+        }).await;
+        assert!(result.is_ok(), "Setting RX algorithm to G711 should succeed");
+        
+        let response = vocoder.get_rx_algorithm().await;
+        assert_eq!(response.algorithm, Algorithm::AlgG711 as i32,
+            "RX algorithm should be set to G711");
+    }
+
+    #[tokio::test] 
+    async fn test_g711_with_other_algorithms() {
+        let vocoder = VocoderImpl::new();
+        
+        // Test switching from RAW to G711
+        vocoder.set_tx_algorithm(AlgorithmRequest { 
+            algorithm: Algorithm::AlgRaw as i32 
+        }).await.unwrap();
+        
+        let result = vocoder.set_tx_algorithm(AlgorithmRequest { 
+            algorithm: Algorithm::AlgG711 as i32 
+        }).await;
+        assert!(result.is_ok(), "Switching from RAW to G711 should work");
+        
+        // Test switching from G711 to MELP
+        let result = vocoder.set_tx_algorithm(AlgorithmRequest { 
+            algorithm: Algorithm::AlgMelp as i32 
+        }).await;
+        assert!(result.is_ok(), "Switching from G711 to MELP should work");
+        
+        // Verify final state
+        let response = vocoder.get_tx_algorithm().await;
+        assert_eq!(response.algorithm, Algorithm::AlgMelp as i32);
+    }
 }
